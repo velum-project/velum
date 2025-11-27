@@ -491,7 +491,7 @@ Progress bars are shown automatically for streaming encryption/decryption.
 
 Example output:
 ```
-[enc] 45.2% | 452.0 MB / 1000.0 MB | 125.3 MB/s | ETA: 4s
+[enc] 45.2% | 452.0 MiB / 1000.0 MiB | 125.3 MiB/s 
 ```
 
 Disable by redirecting stderr:
