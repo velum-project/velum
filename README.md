@@ -604,11 +604,11 @@ VELUM can also be used as a Rust library:
 
 ```toml
 [dependencies]
-velum_core = "0.1.0"
+velum = "0.1.0"
 ```
 
 ```rust
-use velum_core::{generate_keypair, encrypt, decrypt};
+use velum::{generate_keypair, encrypt, decrypt};
 
 let (public, secret) = generate_keypair("passphrase")?;
 let ciphertext = encrypt(b"data", &public, None)?;
