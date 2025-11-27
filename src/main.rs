@@ -225,64 +225,23 @@ fn print_sig_status(status: SigStatus) {
     }
 }
 
-/// Print a simple, real-time progress bar with throughput statistics.
+/// Print a simple progress indicator with throughput statistics.
 fn print_progress(label: &str, processed: u64, total: u64, elapsed: std::time::Duration) {
     let pct = (processed as f64 / total as f64) * 100.0;
-    let mb = processed as f64 / (1 << 20) as f64;
-    let total_mb = total as f64 / (1 << 20) as f64;
+    let mib = processed as f64 / (1 << 20) as f64;
+    let total_mib = total as f64 / (1 << 20) as f64;
     let secs = elapsed.as_secs_f64();
     let speed = if secs > 0.0 {
-        mb / secs
+        mib / secs
     } else {
         0.0
     };
-    let remain_mb = total_mb - mb;
-    let eta = if speed > 0.0 {
-        (remain_mb / speed) as u64
-    } else {
-        0
-    };
 
     eprint!(
-        "\r[{}] {:.1}% | {:.1} MB / {:.1} MB | {:.1} MB/s | ETA: {}s",
-        label, pct, mb, total_mb, speed, eta
+        "\r[{}] {:.1}% | {:.1} MiB / {:.1} MiB | {:.1} MiB/s",
+        label, pct, mib, total_mib, speed
     );
     let _ = io::stderr().flush();
-}
-
-/// Wrapper that calls progress function as bytes flow through.
-struct ProgressReader<R> {
-    inner: R,
-    total: Option<u64>,
-    processed: u64,
-    label: &'static str,
-    last_update: Instant,
-}
-
-impl<R: Read> ProgressReader<R> {
-    fn new(inner: R, total: Option<u64>, label: &'static str) -> Self {
-        Self {
-            inner,
-            total,
-            processed: 0,
-            label,
-            last_update: Instant::now(),
-        }
-    }
-}
-
-impl<R: Read> Read for ProgressReader<R> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let n = self.inner.read(buf)?;
-        self.processed += n as u64;
-        if let Some(total) = self.total {
-            if total > 0 && self.last_update.elapsed() > std::time::Duration::from_millis(100) {
-                print_progress(self.label, self.processed, total, self.last_update.elapsed());
-                self.last_update = Instant::now();
-            }
-        }
-        Ok(n)
-    }
 }
 
 fn main() -> Result<()> {
@@ -395,15 +354,8 @@ fn main() -> Result<()> {
                 let total_bytes = if input == "-" {
                     None
                 } else {
-                    Some(fs::metadata(&input)?.len())
+                    fs::metadata(&input).ok().map(|m| m.len())
                 };
-
-                let infile_raw: Box<dyn Read> = if input == "-" {
-                    Box::new(io::stdin().lock())
-                } else {
-                    Box::new(File::open(&input)?)
-                };
-                let mut infile = ProgressReader::new(infile_raw, total_bytes, "enc");
 
                 let signer = signer_secret
                     .map(|p| -> Result<_> {
@@ -417,26 +369,78 @@ fn main() -> Result<()> {
                     .transpose()?;
 
                 if output == "-" {
+                    let mut infile: Box<dyn Read> = if input == "-" {
+                        Box::new(io::stdin().lock())
+                    } else {
+                        Box::new(File::open(&input)?)
+                    };
                     let mut stdout = io::stdout().lock();
-                    let _ = encrypt_file_stream(
+                    encrypt_file_stream(
                         &mut infile,
                         &mut stdout,
                         &recips,
                         signer.as_ref().map(|(s, p)| (s.as_str(), p.as_str())),
                         chunk_size.unwrap_or(DEFAULT_CHUNK_SIZE),
-                    );
-                } else {
-                    let mut outfile = File::create(&output)?;
-                    encrypt_file_stream(
-                        &mut infile,
-                        &mut outfile,
-                        &recips,
-                        signer.as_ref().map(|(s, p)| (s.as_str(), p.as_str())),
-                        chunk_size.unwrap_or(DEFAULT_CHUNK_SIZE),
                     )
                     .map_err(|()| anyhow!("Streaming encryption failed"))?;
-                    if total_bytes.is_some() {
+                } else {
+                    let start = Instant::now();
+                    let infile: Box<dyn Read> = if input == "-" {
+                        Box::new(io::stdin().lock())
+                    } else {
+                        Box::new(File::open(&input)?)
+                    };
+                    let mut outfile = File::create(&output)?;
+
+                    let should_show_progress = total_bytes.is_some() && total_bytes.unwrap() > 0;
+
+                    struct ProgressReader<R> {
+                        inner: R,
+                        processed: u64,
+                        total: u64,
+                        start: Instant,
+                    }
+
+                    impl<R: Read> Read for ProgressReader<R> {
+                        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+                            let n = self.inner.read(buf)?;
+                            if n > 0 {
+                                self.processed += n as u64;
+                                if self.total > 0 {
+                                    print_progress("enc", self.processed, self.total, self.start.elapsed());
+                                }
+                            }
+                            Ok(n)
+                        }
+                    }
+
+                    if should_show_progress {
+                        let mut progress_in = ProgressReader {
+                            inner: infile,
+                            processed: 0,
+                            total: total_bytes.unwrap(),
+                            start,
+                        };
+
+                        encrypt_file_stream(
+                            &mut progress_in,
+                            &mut outfile,
+                            &recips,
+                            signer.as_ref().map(|(s, p)| (s.as_str(), p.as_str())),
+                            chunk_size.unwrap_or(DEFAULT_CHUNK_SIZE),
+                        )
+                        .map_err(|()| anyhow!("Streaming encryption failed"))?;
                         eprintln!();
+                    } else {
+                        let mut infile = infile;
+                        encrypt_file_stream(
+                            &mut infile,
+                            &mut outfile,
+                            &recips,
+                            signer.as_ref().map(|(s, p)| (s.as_str(), p.as_str())),
+                            chunk_size.unwrap_or(DEFAULT_CHUNK_SIZE),
+                        )
+                        .map_err(|()| anyhow!("Streaming encryption failed"))?;
                     }
                 }
             } else {
