@@ -2,11 +2,12 @@
 
 **A post-quantum command-line encryption tool with recipient anonymity and zero-seek streaming.**
 
+**Experimental and unaudited cryptographic software.**
+**Use at your own risk.**
+
 [![License: ](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Rust Version](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
 
-Experimental and unaudited cryptographic software.
-Use at your own risk.
 
 ```bash
 # Generate a keypair
