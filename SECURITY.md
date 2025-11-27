@@ -452,10 +452,10 @@ VELUM implements algorithms from:
 
 ### Best Practice Adherence
 
-- ✅ OWASP Password Storage Cheat Sheet
-- ✅ NIST SP 800-38D (GCM mode)
-- ✅ NIST SP 800-108 (Key derivation)
-- ✅ RFC 9180 (HPKE) - similar hybrid construction patterns
+- OWASP Password Storage Cheat Sheet
+- NIST SP 800-38D (GCM mode)
+- NIST SP 800-108 (Key derivation)
+- RFC 9180 (HPKE) - similar hybrid construction patterns
 
 ---
 
