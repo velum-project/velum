@@ -1,0 +1,31 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing artifacts
+/test-outputs/
+/fixtures/
+*.tmp
+*.bak
+
+# Secret keys
+*.sec
+*-private-key.asc
+velum-private-key*
+test.pub
+test.sec
+test.velum
+
+# OS
+.DS_Store
+Thumbs.db

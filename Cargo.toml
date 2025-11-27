@@ -1,0 +1,67 @@
+[package]
+name = "velum"
+version = "0.1.0"
+edition = "2021"
+authors = ["VELUM Project"]
+license = "Apache-2.0"
+description = "Post-quantum hybrid encryption with recipient anonymity"
+repository = "https://github.com/velum-project/velum"
+readme = "README.md"
+keywords = ["cryptography", "post-quantum", "encryption", "kyber", "dilithium"]
+categories = ["cryptography", "command-line-utilities"]
+rust-version = "1.70"
+
+[lib]
+name = "velum_core"
+crate-type = ["rlib", "staticlib"]
+
+[[bin]]
+name = "velum"
+path = "src/main.rs"
+
+[dependencies]
+# Cryptographic primitives
+base64 = "0.22"
+rand = "0.8"
+rand_core = "0.6"
+ed25519-dalek = { version = "2.2", features = ["rand_core"] }
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+pqcrypto-mlkem = "0.1"
+pqcrypto-mldsa = "0.1"
+pqcrypto-traits = "0.3"
+
+# Key derivation and hashing
+hkdf = "0.12"
+sha2 = "0.10"
+argon2 = "0.5"
+
+# AEAD
+chacha20poly1305 = "0.10"
+aes-gcm-siv = "0.11"
+
+# Security utilities
+subtle = "2.6"
+zeroize = { version = "1.8", features = ["derive"] }
+
+# CLI dependencies
+clap = { version = "4.5", features = ["derive", "env"] }
+anyhow = "1.0"
+rpassword = "7.3"
+indicatif = "0.18"
+is-terminal = "0.4"
+
+[lints.clippy]
+result_unit_err = "allow"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.dev]
+opt-level = 0
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
