@@ -364,6 +364,11 @@ fn main() -> Result<()> {
                         }
                         let pass = signer_pass.as_ref().unwrap();
                         let sec = fs::read_to_string(&p)?;
+
+                        // Validate the secret key
+                        velum_core::validate_secret(&sec, pass)
+                            .map_err(|()| anyhow!("Failed to decrypt signing key - wrong passphrase or invalid secret key"))?;
+
                         Ok((sec, pass.clone()))
                     })
                     .transpose()?;
@@ -452,6 +457,11 @@ fn main() -> Result<()> {
                         }
                         let pass = signer_pass.as_ref().unwrap();
                         let sec = fs::read_to_string(&p)?;
+
+                        // Validate the secret key
+                        velum_core::validate_secret(&sec, pass)
+                            .map_err(|()| anyhow!("Failed to decrypt signing key - wrong passphrase or invalid secret key"))?;
+
                         Ok((sec, pass.clone()))
                     })
                     .transpose()?;
@@ -493,7 +503,13 @@ fn main() -> Result<()> {
                 .with_context(|| format!("Cannot read secret key: {}", secret.display()))?;
 
             let expected_pub = if let Some(p) = expect_public {
-                Some(fs::read_to_string(&p)?)
+                let pub_armor = fs::read_to_string(&p)?;
+
+                // Validate if the public key is actually valid
+                velum_core::keys::validate_public(&pub_armor)
+                    .map_err(|()| anyhow!("Invalid public key for signature verification"))?;
+
+                Some(pub_armor)
             } else {
                 None
             };

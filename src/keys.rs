@@ -608,6 +608,11 @@ pub fn validate_public(arm: &str) -> Result<(), ()> {
     crate::armor::parse_public(arm).map(|_| ())
 }
 
+pub fn validate_secret(arm: &str, pass: &str) -> Result<(), ()> {
+    unlock_secret(arm, pass).map(|_| ())
+    // SecretBundle is immediately dropped here and zeroized
+}
+
 pub fn rewrap_secret_with_params(
     old_secret: &str,
     old_pass: &str,

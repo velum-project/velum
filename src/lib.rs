@@ -71,4 +71,4 @@ pub use crate::core::{
 /// - `generate_keypair` — create a new (PUBLIC, SECRET) pair protected by passphrase
 /// - `rewrap_secret_with_params` — change passphrase or Argon2id parameters
 /// - `validate_public` — strict validation of armored PUBLIC keys
-pub use crate::keys::{generate_keypair, rewrap_secret_with_params, validate_public};
+pub use crate::keys::{generate_keypair, rewrap_secret_with_params, validate_public, validate_secret};
