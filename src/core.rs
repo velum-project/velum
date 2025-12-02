@@ -1100,7 +1100,10 @@ where
         recipients_b64.zeroize();
 
         on_chunk(&pt_raw)?;
-        // signature in header only (non-stream path)
+        
+        // Replace dummy ct_and_tag with actual ciphertext for signature verification
+        let mut ctx = ctx;
+        ctx.parsed.ct_and_tag = ct_and_tag;
         return verify_signature_status(&ctx, expected_public);
     }
 
