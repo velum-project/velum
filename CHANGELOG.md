@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed signature verification in non-streaming binary mode. Signatures 
-  were incorrectly reported as `Invalid` even when correct, due to stale 
+  were incorrectly reported as `Invalid` even when correct, due to incorrect 
   ciphertext data being passed to the verification function.
   
   **Severity:** Medium  
