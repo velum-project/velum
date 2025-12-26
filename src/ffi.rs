@@ -421,9 +421,10 @@ pub unsafe extern "C" fn velum_encrypt_bytes(
             Err(_) => return -1,
         };
 
-        let len = ct.len();
         let mut v = ct;
+        v.shrink_to_fit(); 
         let ptr = v.as_mut_ptr();
+        let len = v.len();
         std::mem::forget(v);
 
         unsafe {
@@ -497,9 +498,10 @@ pub unsafe extern "C" fn velum_encrypt_binary(
             Err(_) => return -1,
         };
 
-        let len = ct.len();
         let mut v = ct;
+        v.shrink_to_fit();
         let ptr = v.as_mut_ptr();
+        let len = v.len();
         std::mem::forget(v);
 
         unsafe {
@@ -658,9 +660,10 @@ pub unsafe extern "C" fn velum_decrypt_bytes(
             Err(_) => return -1,
         };
 
-        let len = pt.len();
         let mut v = pt;
+        v.shrink_to_fit(); 
         let ptr = v.as_mut_ptr();
+        let len = v.len();
         std::mem::forget(v);
 
         unsafe {
@@ -736,9 +739,10 @@ pub unsafe extern "C" fn velum_decrypt_binary(
             Err(_) => return -1,
         };
 
-        let len = pt.len();
         let mut v = pt;
+        v.shrink_to_fit(); 
         let ptr = v.as_mut_ptr();
+        let len = v.len();
         std::mem::forget(v);
 
         unsafe {
