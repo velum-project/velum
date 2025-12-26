@@ -15,11 +15,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.3] - 2025-12-26
+
+### Fixed
+- Fixed a heap corruption vulnerability in the FFI byte-level API 
+  (`velum_*_bytes`). Vectors returned to the host application (C/Swift/Kotlin) 
+  did not have their capacity synchronized with their length, leading to 
+  Undefined Behavior and allocator corruption when freed via `velum_free_bytes`.
+  
+  **Severity:** **CRITICAL**
+  
+  **Impact:** Could lead to application crashes (`SIGABRT`) or Remote Code 
+  Execution (RCE) in host applications processing untrusted binary data via 
+  the FFI byte API. The text-based FFI API (`_string`) was **not** affected.
+  
+  **Affected versions:** v0.1.0, v0.1.1, v0.1.2
+  
+  **Recommendation:** All users are strongly advised to upgrade to v0.1.3 
+  **immediately**. Developers using the FFI bindings must rebuild their binaries 
+  with this version.
+
+---
+
 ## [0.1.2] - 2025-12-02
 
 ### Fixed
-- Fixed signature verification in non-streaming binary mode. Signatures 
-  were incorrectly reported as `Invalid` even when correct, due to incorrect 
+- Fixed signature verification in non-streaming binary mode. Signatures
+  were incorrectly reported as invalid even when correct, due to incorrect 
   ciphertext data being passed to the verification function.
   
   **Severity:** Medium  
@@ -111,7 +133,8 @@ responsible disclosure procedures.
 
 ---
 
-[Unreleased]: https://github.com/velum-project/velum/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/velum-project/velum/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/velum-project/velum/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/velum-project/velum/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/velum-project/velum/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/velum-project/velum/releases/tag/v0.1.0
