@@ -15,6 +15,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.4] - 2025-12-27
+
+### Fixed
+- **Incomplete Fix for Heap Corruption:** Addressed a limitation in the v0.1.3 
+  security patch regarding FFI memory management. The previous fix relied on 
+  `Vec::shrink_to_fit()`, which is an advisory hint to the allocator and **does 
+  not guarantee** that `capacity == len`. Consequently, v0.1.3 remained vulnerable 
+  to Undefined Behavior on allocators that ignore the shrink request or align capacity 
+  to block sizes. This release replaces the `Vec` handling with `Box<[u8]>` 
+  (`into_boxed_slice()`), which enforces a strict memory layout where capacity is 
+  structurally irrelevant, completely eliminating the risk of allocator mismatch.
+
+  **Severity:** **CRITICAL**
+
+  **Impact:** The potential for heap corruption and RCE described in v0.1.3 persists 
+  in that version.
+
+  **Affected versions:** v0.1.0, v0.1.1, v0.1.2, **v0.1.3**.
+
+  **Recommendation:** All users, including those who updated to v0.1.3, must upgrade 
+  to v0.1.4 **immediately**. Developers using the FFI bindings must rebuild their 
+  binaries with this version.
+
+---
+
 ## [0.1.3] - 2025-12-26
 
 ### Fixed
