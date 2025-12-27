@@ -75,7 +75,6 @@ pub unsafe extern "C" fn velum_free_string(s: *mut c_char) {
 /// - `p` must be a pointer previously returned by a VELUM function (or NULL)
 /// - `len` must match the length returned alongside `p`
 /// - `p` must not be used after calling this function
-/// - Passing an invalid pointer or mismatched length results in undefined behavior
 #[no_mangle]
 pub unsafe extern "C" fn velum_free_bytes(p: *mut c_uchar, len: usize) {
     ffi_guard(|| {
@@ -83,8 +82,10 @@ pub unsafe extern "C" fn velum_free_bytes(p: *mut c_uchar, len: usize) {
             return;
         }
         unsafe {
-            // Rebuild Vec and drop.
-            let _ = Vec::from_raw_parts(p, len, len);
+            // Reconstruct a raw slice pointer (ptr + len).
+            // Box::from_raw deallocates exactly `len` bytes.
+            let slice_ptr = std::ptr::slice_from_raw_parts_mut(p, len);
+            let _ = Box::from_raw(slice_ptr);
         }
     })
 }
@@ -386,16 +387,13 @@ pub unsafe extern "C" fn velum_encrypt_bytes(
         unsafe {
             set_null_bytes(out_ciphertext, out_ciphertext_len);
         }
-
         if plaintext.is_null() && plaintext_len > 0 {
             return -1;
         }
-
         let recips = match c_str_to_str(recipients) {
             Ok(s) => s,
             Err(_) => return -1,
         };
-
         let signer_opt = if signer_secret.is_null() {
             None
         } else {
@@ -413,19 +411,18 @@ pub unsafe extern "C" fn velum_encrypt_bytes(
             };
             Some((sec, pass))
         };
-
+        
         let pt_slice = unsafe { std::slice::from_raw_parts(plaintext, plaintext_len) };
-
+        
         let ct = match core::encrypt(pt_slice, recips, signer_opt) {
             Ok(v) => v,
             Err(_) => return -1,
         };
 
-        let mut v = ct;
-        v.shrink_to_fit(); 
-        let ptr = v.as_mut_ptr();
-        let len = v.len();
-        std::mem::forget(v);
+        // Use into_boxed_slice() to enforce capacity == len
+        let boxed_ct = ct.into_boxed_slice();
+        let len = boxed_ct.len();
+        let ptr = Box::into_raw(boxed_ct) as *mut c_uchar;
 
         unsafe {
             if !out_ciphertext.is_null() {
@@ -435,7 +432,6 @@ pub unsafe extern "C" fn velum_encrypt_bytes(
                 *out_ciphertext_len = len;
             }
         }
-
         0
     })
 }
@@ -463,16 +459,13 @@ pub unsafe extern "C" fn velum_encrypt_binary(
         unsafe {
             set_null_bytes(out_ciphertext, out_ciphertext_len);
         }
-
         if plaintext.is_null() && plaintext_len > 0 {
             return -1;
         }
-
         let recips = match c_str_to_str(recipients) {
             Ok(s) => s,
             Err(_) => return -1,
         };
-
         let signer_opt = if signer_secret.is_null() {
             None
         } else {
@@ -492,17 +485,16 @@ pub unsafe extern "C" fn velum_encrypt_binary(
         };
 
         let pt_slice = unsafe { std::slice::from_raw_parts(plaintext, plaintext_len) };
-
+        
         let ct = match core::encrypt_binary(pt_slice, recips, signer_opt) {
             Ok(v) => v,
             Err(_) => return -1,
         };
 
-        let mut v = ct;
-        v.shrink_to_fit();
-        let ptr = v.as_mut_ptr();
-        let len = v.len();
-        std::mem::forget(v);
+        // Use into_boxed_slice() to enforce capacity == len
+        let boxed_ct = ct.into_boxed_slice();
+        let len = boxed_ct.len();
+        let ptr = Box::into_raw(boxed_ct) as *mut c_uchar;
 
         unsafe {
             if !out_ciphertext.is_null() {
@@ -512,7 +504,6 @@ pub unsafe extern "C" fn velum_encrypt_binary(
                 *out_ciphertext_len = len;
             }
         }
-
         0
     })
 }
@@ -630,11 +621,9 @@ pub unsafe extern "C" fn velum_decrypt_bytes(
                 *out_sig_status = 0;
             }
         }
-
         if ciphertext.is_null() && ciphertext_len > 0 {
             return -1;
         }
-
         let sec = match c_str_to_str(secret) {
             Ok(s) => s,
             Err(_) => return -1,
@@ -643,7 +632,6 @@ pub unsafe extern "C" fn velum_decrypt_bytes(
             Ok(s) => s,
             Err(_) => return -1,
         };
-
         let expected_opt = if expected_public.is_null() {
             None
         } else {
@@ -654,17 +642,15 @@ pub unsafe extern "C" fn velum_decrypt_bytes(
         };
 
         let ct_slice = unsafe { std::slice::from_raw_parts(ciphertext, ciphertext_len) };
-
         let (pt, sig_status) = match core::decrypt(ct_slice, sec, pass, expected_opt) {
             Ok(t) => t,
             Err(_) => return -1,
         };
 
-        let mut v = pt;
-        v.shrink_to_fit(); 
-        let ptr = v.as_mut_ptr();
-        let len = v.len();
-        std::mem::forget(v);
+        // Use into_boxed_slice() to enforce capacity == len
+        let boxed_pt = pt.into_boxed_slice();
+        let len = boxed_pt.len();
+        let ptr = Box::into_raw(boxed_pt) as *mut c_uchar;
 
         unsafe {
             if !out_plain.is_null() {
@@ -677,7 +663,6 @@ pub unsafe extern "C" fn velum_decrypt_bytes(
                 *out_sig_status = sig_status as c_int;
             }
         }
-
         0
     })
 }
@@ -709,11 +694,9 @@ pub unsafe extern "C" fn velum_decrypt_binary(
                 *out_sig_status = 0;
             }
         }
-
         if ciphertext.is_null() && ciphertext_len > 0 {
             return -1;
         }
-
         let sec = match c_str_to_str(secret) {
             Ok(s) => s,
             Err(_) => return -1,
@@ -722,7 +705,6 @@ pub unsafe extern "C" fn velum_decrypt_binary(
             Ok(s) => s,
             Err(_) => return -1,
         };
-
         let expected_opt = if expected_public.is_null() {
             None
         } else {
@@ -733,17 +715,15 @@ pub unsafe extern "C" fn velum_decrypt_binary(
         };
 
         let ct_slice = unsafe { std::slice::from_raw_parts(ciphertext, ciphertext_len) };
-
         let (pt, sig_status) = match core::decrypt_binary(ct_slice, sec, pass, expected_opt) {
             Ok(t) => t,
             Err(_) => return -1,
         };
 
-        let mut v = pt;
-        v.shrink_to_fit(); 
-        let ptr = v.as_mut_ptr();
-        let len = v.len();
-        std::mem::forget(v);
+        // Use into_boxed_slice() to enforce capacity == len
+        let boxed_pt = pt.into_boxed_slice();
+        let len = boxed_pt.len();
+        let ptr = Box::into_raw(boxed_pt) as *mut c_uchar;
 
         unsafe {
             if !out_plain.is_null() {
@@ -756,7 +736,6 @@ pub unsafe extern "C" fn velum_decrypt_binary(
                 *out_sig_status = sig_status as c_int;
             }
         }
-
         0
     })
 }
